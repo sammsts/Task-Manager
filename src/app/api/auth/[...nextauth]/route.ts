@@ -5,6 +5,13 @@ import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
 import { prisma } from "@/src/app/lib/prisma";
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+if (!googleClientId || !googleClientSecret) {
+  throw new Error("Google Client ID e Secret não estão configurados corretamente.");
+}
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -14,20 +21,35 @@ export const authOptions = {
         password: { label: "Senha", type: "password" },
       },
       async authorize(credentials) {
-        let user = await prisma.user.findFirst({
-          where: {
-            email: credentials?.email
-          }
-        })
-        if (user) {
-          return { id: user.id, name: user.nome, email: user.email };
+        if (!credentials?.email) return null;
+        
+        let usuarios = await prisma.usuarios.findFirst({
+          where: { email: credentials.email, senha: credentials.password }
+        });
+        
+        if (!usuarios) {
+          console.log(`Usuário de e-mail "${credentials.email}" não encontrado!!!`)
+
+          usuarios = await prisma.usuarios.create({
+            data: {
+              email: credentials.email,
+              nome: credentials.email.split("@")[0],
+              senha: credentials.password
+            },
+          });
+
+          console.log(`Criado usuário "${usuarios.nome}"!!!`)
         }
-        return null
+
+        if (usuarios) {
+          return { id: usuarios.id, name: usuarios.nome, email: usuarios.email };
+        }
+        return null;
       },
     }),
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
     }),
   ],
   pages: {
@@ -35,16 +57,18 @@ export const authOptions = {
   },
   session: { strategy: "jwt" as const },
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user }) {
       try {
-        let existingUser = await prisma.user.findUnique({
+        if (!user.email) return false;
+        
+        let existingUser = await prisma.usuarios.findUnique({
           where: { email: user.email },
         });
 
         if (!existingUser) {
-          existingUser = await prisma.user.create({
+          existingUser = await prisma.usuarios.create({
             data: {
-              nome: user.name,
+              nome: user.name ?? "Usuário Desconhecido",
               email: user.email,
             },
           });
@@ -56,11 +80,23 @@ export const authOptions = {
       }
     },
     async jwt({ token, user }: { token: JWT; user?: any }) {
-      if (user) token.user = user;
+      if (user) {
+        token.user = {
+          id: user.id,
+          name: user.name ?? null,
+          email: user.email ?? null,
+        };
+      }
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
-      session.user = token.user as { name?: string | null; email?: string | null; image?: string | null };
+      if (token.user) {
+        session.user = {
+          name: token.user.name ?? null,
+          email: token.user.email ?? null,
+          image: token.user.image ?? null,
+        };
+      }
       return session;
     },
   },

@@ -20,22 +20,27 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-model User {
+model usuarios {
   id        Int        @id @default(autoincrement())
-  email     String     @unique
-  nome      String?
+  nome     String?     
+  email    String      @unique
+  senha    String      
   criado_em DateTime   @default(now())
-  Postagem  Postagem[]
+  tarefas  tarefas[]
 
-  @@map("users")
+  @@map("usuarios")
 }
 
-model Postagem {
+model tarefas {
   id         Int     @id @default(autoincrement())
   titulo     String
   conteudo   String?
   usuario_id Int
-  usuario    User?   @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  usuario    usuarios?   @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  concluida  Boolean
+  dt_criacao DateTime
+  dt_atualizacao DateTime
+  dt_delecao DateTime
 
-  @@map("postagens")
+  @@map("tarefas")
 }

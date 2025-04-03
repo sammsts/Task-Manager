@@ -4,29 +4,27 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  useCreateNoticia,
-  useDeleteNoticia,
-  useNoticias,
-  useUpdateNoticias,
-} from "../actions/fetchNoticias";
+  useCreatetarefa,
+  useDeletetarefa,
+  useTarefas,
+  useUpdateTarefas,
+} from "../actions/fetchTarefas";
 
-export default function NoticiasSection() {
+export default function TarefasSection() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { isLoading, data, isFetching } = useNoticias();
+  const { isLoading, data, isFetching } = useTarefas();
 
-  const { mutateAsync: update, isPending } = useUpdateNoticias();
-  const { mutateAsync: create, isPending: isLoadingCriacao } =
-    useCreateNoticia();
-  const { mutateAsync: deletaNoticia, isPending: isLoadingDelete } =
-    useDeleteNoticia();
+  const { mutateAsync: update, isPending } = useUpdateTarefas();
+  const { mutateAsync: create, isPending: isLoadingCriacao } = useCreatetarefa();
+  const { mutateAsync: deletatarefa, isPending: isLoadingDelete } = useDeletetarefa();
 
   function onSubmit(data: any) {
     console.log(data);
     create(data, {
       onSuccess: () => {
         console.log("Sucesso");
-        queryClient.invalidateQueries({ queryKey: ["noticias"] });
+        queryClient.invalidateQueries({ queryKey: ["Tarefas"] });
       },
       onError: () => {
         console.log("Erro");
@@ -36,7 +34,7 @@ export default function NoticiasSection() {
 
   return (
     <>
-      {isLoadingCriacao && <span>Criando noticia ...</span>}
+      {isLoadingCriacao && <span>Criando tarefa ...</span>}
       <div className="flex justify-center">
         <form
           onSubmit={(e) => {
@@ -52,7 +50,7 @@ export default function NoticiasSection() {
           <input name="conteudo" placeholder="conteudo" />
           <button type="submit">Criar</button>
         </form>
-        {isLoadingDelete && <span>Deletando noticia ...</span>}
+        {isLoadingDelete && <span>Deletando tarefa ...</span>}
       </div>
       {!isFetching ? (
         <div className="mx-auto mt-10 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 border-t border-gray-200 pt-10 sm:mt-16 sm:pt-16 lg:mx-0 lg:max-w-none lg:grid-cols-3">
@@ -68,28 +66,43 @@ export default function NoticiasSection() {
                 </span>
               </div>
               <div className="group relative">
-                <h3 className="mt-3 text-lg/6 font-semibold text-gray-900 group-hover:text-gray-600">
-                  <Link href={`/noticias/${post.id}`}>
-                    <span className="absolute inset-0" />
-                    {post.titulo}
-                  </Link>
+                <h3
+                  className={`mt-3 text-lg/6 font-semibold group-hover:text-gray-600 ${post.concluida ? "text-gray-500 line-through" : "text-gray-900"
+                    }`}>
+                  <span className="absolute inset-0" />
+                  {post.titulo}
                 </h3>
+                <h5
+                  className={`mt-2 text-lg/3 cursor-pointer ${post.concluida ? "text-green-600" : "text-red-900"
+                    } group-hover:text-gray-600`}
+                  onClick={() => {
+                    update(
+                      { id: post.id, concluida: !post.concluida },
+                      {
+                        onSuccess: () => {
+                          queryClient.invalidateQueries({ queryKey: ["Tarefas"] });
+                        },
+                      }
+                    );
+                  }}>
+                  <span className="absolute inset-0" />
+                  {post.concluida ? "Concluída" : "Em aberto"}
+                </h5>
                 <p className="mt-5 line-clamp-3 text-sm/6 text-gray-600">
                   {post.conteudo}
                 </p>
               </div>
-
               <button
                 className="text-red-500"
                 onClick={() => {
-                  deletaNoticia(
+                  deletatarefa(
                     {
                       id: post.id,
                     },
                     {
                       onSuccess: () => {
                         queryClient.invalidateQueries({
-                          queryKey: ["noticias"],
+                          queryKey: ["Tarefas"],
                         });
                       },
                     }
@@ -112,7 +125,7 @@ export default function NoticiasSection() {
           ))}
         </div>
       ) : (
-        <>Carregando noticias ....</>
+        <>Carregando Tarefas ....</>
       )}
     </>
   );

@@ -2,7 +2,7 @@ import { prisma } from "@/src/app/lib/prisma"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function DELETE(req: NextRequest, { params } ) {
-    await prisma.postagem.delete({
+    await prisma.tarefas.delete({
         where: {
             id: Number(params.id)
         }
